@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geovisor Geomático - Red Hídrica de Armenia</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Chart.js para tableros estadísticos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #f4f6f9;
+        }
+
+        /* Sidebar - Panel de Control */
+        #sidebar {
+            width: 420px;
+            background: #ffffff;
+            border-right: 1px solid #dcdfe6;
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+        }
+
+        .header {
+            background: #1b4332;
+            color: #ffffff;
+            padding: 18px 20px;
+            border-bottom: 3px solid #2d6a4f;
+        }
+
+        .header h1 {
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            line-height: 1.3;
+        }
+
+        .header .authors {
+            font-size: 0.78rem;
+            margin-top: 6px;
+            color: #b7e4c7;
+            line-height: 1.4;
+        }
+
+        .content {
+            padding: 15px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .panel-section {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 15px;
+        }
+
+        .panel-section h3 {
+            font-size: 0.90rem;
+            color: #1b4332;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #52b788;
+            padding-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .layer-toggle {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.83rem;
+            cursor: pointer;
+            color: #2b2b2b;
+        }
+
+        .layer-toggle input {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+
+        .legend-symbol {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+
+        /* Tarjetas de Indicadores (KPIs) */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 5px;
+        }
+
+        .kpi-card {
+            background: #ffffff;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            text-align: center;
+        }
+
+        .kpi-card .value {
+            font-size: 1.05rem;
+            font-weight: bold;
+            color: #1b4332;
+        }
+
+        .kpi-card .label {
+            font-size: 0.72rem;
+            color: #6c757d;
+            margin-top: 2px;
+        }
+
+        /* Mapa */
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .popup-title {
+            font-weight: bold;
+            color: #1b4332;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 3px;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .popup-info {
+            font-size: 0.82rem;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div class="header">
+            <h1>Geovisor Red Hídrica Armenia</h1>
+            <div class="authors">
+                <strong>Estudiantes:</strong> Luisa F. Alba, Claudia V. Martinez<br>
+                <strong>Director:</strong> Aaron David Fiscal Ladino | Univ. del Quindío
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Indicadores Clave del Estudio -->
+            <div class="panel-section">
+                <h3>Resultados del Informe</h3>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="value">809,45 km</div>
+                        <div class="label">Red Hídrica Total</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="value">206,32 km</div>
+                        <div class="label">En Perímetro Urbano (25,49%)</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="value">4.097,29 ha</div>
+                        <div class="label">Franja Analítica (30m)</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="value">46,78 ha</div>
+                        <div class="label">Huella Construida (1,14%)</div>
+                    </div>
+                    <div class="kpi-card" style="grid-column: span 2;">
+                        <div class="value">81,74% (2.763,85 ha)</div>
+                        <div class="label">Cultivos Permanentes en Franja Rural</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Selector de Capas Geoespaciales -->
+            <div class="panel-section">
+                <h3>Capas del Geovisor</h3>
+                
+                <label class="layer-toggle">
+                    <input type="checkbox" id="chkPerimetro" checked>
+                    <span class="legend-symbol" style="border: 2px dashed #333; background: transparent;"></span>
+                    Perímetro Urbano de Armenia
+                </label>
+
+                <label class="layer-toggle">
+                    <input type="checkbox" id="chkRedHidrica" checked>
+                    <span class="legend-symbol" style="background: #0077b6;"></span>
+                    Red Hídrica (red_hidrica.geojson)
+                </label>
+
+                <label class="layer-toggle">
+                    <input type="checkbox" id="chkBuffer" checked>
+                    <span class="legend-symbol" style="background: rgba(255, 183, 3, 0.6);"></span>
+                    Franja Analítica 30m (franja_30m.geojson)
+                </label>
+
+                <label class="layer-toggle">
+                    <input type="checkbox" id="chkConflictos" checked>
+                    <span class="legend-symbol" style="background: #d62828;"></span>
+                    Construcciones en Conflicto (construcciones.geojson)
+                </label>
+
+                <label class="layer-toggle">
+                    <input type="checkbox" id="chkIOT" checked>
+                    <span class="legend-symbol" style="background: #2a
